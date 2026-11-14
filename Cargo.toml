@@ -1,0 +1,38 @@
+[package]
+name = "rust"
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+futures = "0.3"
+rand = "0.8"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+
+[dependencies.tokio]
+version = "1"
+features = ["rt-multi-thread", "macros", "fs"]
+
+[dependencies.serenity]
+version = "0.12"
+default-features = false
+features = ["client", "gateway", "rustls_backend", "model", "cache"]
+
+[dependencies.songbird]
+version = "0.5.0"
+default-features = false
+features = ["gateway", "serenity", "rustls"]
+
+[dependencies.lavalink-rs]
+path = "lavalink-rs-patched"
+default-features = false
+features = ["songbird", "serenity", "tungstenite-rustls-native-roots", "macros"]
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true
