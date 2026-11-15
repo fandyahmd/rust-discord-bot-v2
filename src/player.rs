@@ -115,6 +115,10 @@ pub async fn resolve(
     guild_id: SGuildId,
     query: &str,
 ) -> Result<(Vec<TrackData>, Option<String>), String> {
+    if let Some(track) = bot.suggestions.track(query).await {
+        eprintln!("[play] guild={} using cached autocomplete track", guild_id);
+        return Ok((vec![track], None));
+    }
     let identifier = if query.starts_with("http://") || query.starts_with("https://") {
         query.to_string()
     } else {

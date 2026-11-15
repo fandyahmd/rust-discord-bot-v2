@@ -26,6 +26,24 @@ const MAX_CHOICES: usize = 25;
 /// A little under Discord's 3s budget, so a slow node never looks like a crash.
 const SEARCH_TIMEOUT: Duration = Duration::from_millis(2200);
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn selected_track_survives_other_searches_and_expires() {
+        let cache = SuggestionCache::default();
+        let mut track = lavalink_rs::model::track::TrackData::default();
+        track.encoded = "test-track".into();
+        cache.remember_track("https://example.com/track".into(), track.clone()).await;
+        cache.put("another search".into(), Vec::new()).await;
+        assert_eq!(cache.track("https://example.com/track").await, Some(track));
+        assert!(cache.track("unknown").await.is_none());
+        cache.tracks.lock().await.get_mut("https://example.com/track").unwrap().0 = Instant::now() - TTL;
+        assert!(cache.track("https://example.com/track").await.is_none());
+    }
+}
+
 struct Entry {
     at: Instant,
     choices: Vec<(String, String)>,
@@ -34,9 +52,22 @@ struct Entry {
 #[derive(Default)]
 pub struct SuggestionCache {
     map: Mutex<HashMap<String, Entry>>,
+    tracks: Mutex<HashMap<String, (Instant, lavalink_rs::model::track::TrackData)>>,
 }
 
 impl SuggestionCache {
+    pub async fn track(&self, value: &str) -> Option<lavalink_rs::model::track::TrackData> {
+        let mut tracks = self.tracks.lock().await;
+        tracks.retain(|_, (at, _)| at.elapsed() < TTL);
+        tracks.get(value).map(|(_, track)| track.clone())
+    }
+
+    async fn remember_track(&self, value: String, track: lavalink_rs::model::track::TrackData) {
+        let mut tracks = self.tracks.lock().await;
+        tracks.retain(|_, (at, _)| at.elapsed() < TTL);
+        tracks.insert(value, (Instant::now(), track));
+    }
+
     async fn get(&self, query: &str) -> Option<Vec<(String, String)>> {
         let map = self.map.lock().await;
         let entry = map.get(query)?;
@@ -120,22 +151,18 @@ async fn suggestions(
         _ => Vec::new(),
     };
 
-    let choices: Vec<(String, String)> = tracks
-        .into_iter()
-        .take(MAX_CHOICES)
-        .map(|t| {
-            // Discord labels are capped at 100 characters.
-            let label = format!(
-                "{} — {} [{}]",
-                truncate(&t.info.title, 60),
-                truncate(&t.info.author, 25),
-                fmt_ms(t.info.length)
-            );
-            // The value is what `/play` receives: a stable URL beats a raw title.
-            let value = t.info.uri.unwrap_or_else(|| t.info.title.clone());
-            (truncate(&label, 100), value)
-        })
-        .collect();
+    let mut choices = Vec::new();
+    for t in tracks.into_iter().take(MAX_CHOICES) {
+        let label = format!(
+            "{} — {} [{}]",
+            truncate(&t.info.title, 60),
+            truncate(&t.info.author, 25),
+            fmt_ms(t.info.length)
+        );
+        let value = t.info.uri.clone().unwrap_or_else(|| t.info.title.clone());
+        bot.suggestions.remember_track(value.clone(), t).await;
+        choices.push((truncate(&label, 100), value));
+    }
 
     bot.suggestions.put(query.to_string(), choices.clone()).await;
     choices
