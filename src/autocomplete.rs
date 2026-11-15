@@ -67,9 +67,11 @@ pub async fn on_autocomplete(ctx: &Context, cmd: &CommandInteraction, bot: &Arc<
     };
     let query = option.value.trim().to_string();
     // Lavalink assigns nodes per guild, so search on behalf of the guild we are in.
-    let guild_id = cmd.guild_id.unwrap_or(serenity::all::GuildId::new(0));
-
-    let choices = suggestions(bot, guild_id, &query).await;
+    let choices = match cmd.guild_id {
+        Some(guild_id) => suggestions(bot, guild_id, &query).await,
+        None => Vec::new(),
+    };
+    let count = choices.len();
     let response = CreateInteractionResponse::Autocomplete(
         choices
             .into_iter()
@@ -78,8 +80,10 @@ pub async fn on_autocomplete(ctx: &Context, cmd: &CommandInteraction, bot: &Arc<
             }),
     );
 
-    // Errors here are harmless: Discord drops the suggestions after 3 seconds.
-    let _ = cmd.create_response(&ctx.http, response).await;
+    match cmd.create_response(&ctx.http, response).await {
+        Ok(()) => eprintln!("[autocomplete] response sent: {count} choices"),
+        Err(error) => eprintln!("[autocomplete] response failed: {error}"),
+    }
 }
 
 async fn suggestions(
