@@ -8,6 +8,9 @@ channel nggak pernah spam.
 ## Fitur
 
 - **Putar dari teks/link**: YouTube, YouTube Music, Spotify, SoundCloud, playlist & album.
+- **Autocomplete `/play`**: sambil mengetik judul, Discord menampilkan saran lagu
+  (judul — artis — durasi) lengkap dengan hasil pencarian live dari Lavalink,
+  mirip kolom pencarian YouTube/Spotify. Pilih salah satu → langsung diputar.
 - **Channel player** (`/setup`): satu channel teks khusus bot; ketik judul lagu di sana
   dan lagu langsung masuk antrean. Satu pesan panel dengan tombol
   ⏮️ prev · ⏸️ pause · ⏭️ next · ⏹️ stop · 🔀 shuffle · 🔊🔉 volume · 🔁 loop · ♾️ autoplay,

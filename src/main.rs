@@ -49,6 +49,9 @@ impl EventHandler for Handler {
         match interaction {
             Interaction::Command(cmd) => commands::handle(ctx, cmd, bot).await,
             Interaction::Component(cmp) => interactions::on_component(&ctx, &cmp, &bot).await,
+            Interaction::Autocomplete(ac) => {
+                rust::autocomplete::on_autocomplete(&ctx, &ac, &bot).await
+            }
             _ => {}
         }
     }
@@ -163,6 +166,7 @@ async fn main() {
         data.insert::<BotData>(Arc::new(BotData {
             start_time: Instant::now(),
             health: health.clone(),
+            suggestions: rust::autocomplete::SuggestionCache::default(),
             shard_manager: Mutex::new(None),
             lavalink,
             shared,

@@ -21,7 +21,8 @@ pub fn definitions() -> Vec<CreateCommand> {
                     "query",
                     "Judul lagu atau link (YouTube/Spotify/SoundCloud)",
                 )
-                .required(true),
+                .required(true)
+                .set_autocomplete(true),
             ),
         CreateCommand::new("pause").description("Jeda lagu"),
         CreateCommand::new("resume").description("Lanjutkan lagu"),

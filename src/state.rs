@@ -90,6 +90,7 @@ pub struct LavaState {
 pub struct BotData {
     pub start_time: Instant,
     pub health: crate::health::Health,
+    pub suggestions: crate::autocomplete::SuggestionCache,
     pub shard_manager: Mutex<Option<Arc<ShardManager>>>,
     pub lavalink: LavalinkClient,
     pub shared: Arc<Mutex<SharedState>>,
