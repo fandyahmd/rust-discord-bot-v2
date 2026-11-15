@@ -22,17 +22,19 @@ impl EventHandler for Handler {
         let defs = commands::definitions();
         let count = defs.len();
 
-        // Global commands take up to an hour to propagate; guild-scoped ones are instant,
-        // so register both. Guild commands shadow the global copy inside that guild.
+        // Public bot: global commands are the single source of truth.
         match Command::set_global_commands(&ctx.http, defs.clone()).await {
             Ok(_) => println!("[Rust] {count} global slash commands synced"),
-            Err(e) => eprintln!("[Rust] global command sync failed: {e:?}"),
+            Err(e) => {
+                eprintln!("[Rust] global command sync failed: {e:?}");
+                return; // Keep guild commands available if global sync failed.
+            }
         }
 
         for guild in &ready.guilds {
-            match guild.id.set_commands(&ctx.http, defs.clone()).await {
-                Ok(_) => println!("[Rust] {count} slash commands synced to guild {}", guild.id),
-                Err(e) => eprintln!("[Rust] guild {} sync failed: {e:?}", guild.id),
+            match guild.id.set_commands(&ctx.http, Vec::new()).await {
+                Ok(_) => println!("[Rust] cleared legacy guild commands for {}", guild.id),
+                Err(e) => eprintln!("[Rust] guild {} command cleanup failed: {e:?}", guild.id),
             }
         }
     }
