@@ -32,7 +32,14 @@ COPY --from=builder /usr/local/bin/rust /usr/local/bin/rust
 USER bot
 WORKDIR /home/bot
 
-ENV RUST_LOG=info,lavalink_rs=info
+ENV RUST_LOG=info,lavalink_rs=info \
+    PORT=8080
 
-# Bot tidak membuka port; jalankan sebagai worker/background service.
+# Health endpoint for PaaS platforms (Render/Koyeb web service) so the
+# container is not considered idle and put to sleep.
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+    CMD ["sh", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /healthz HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && head -c 100 <&3 | grep -q '200 OK'"]
+
 CMD ["rust"]

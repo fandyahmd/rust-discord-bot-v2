@@ -2,6 +2,7 @@
 
 pub mod commands;
 pub mod format;
+pub mod health;
 pub mod hooks;
 pub mod interactions;
 pub mod panel;

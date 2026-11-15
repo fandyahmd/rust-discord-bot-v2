@@ -112,6 +112,14 @@ fn take_related(tracks: Vec<TrackData>, skip_id: &str) -> Option<TrackData> {
 pub async fn ready_event(client: LavalinkClient, session_id: String, _event: &events::Ready) {
     println!("[Lavalink] node ready, session={session_id}");
     let _ = client.delete_all_player_contexts().await;
+
+    // The health endpoint only reports 200 once Lavalink + gateway are usable.
+    if let Ok(lava) = client.data::<LavaState>() {
+        if let Some(health) = &lava.health {
+            health.mark_ready();
+            println!("[health] ready");
+        }
+    }
 }
 
 #[cfg(test)]

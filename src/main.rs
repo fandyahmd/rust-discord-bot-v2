@@ -9,6 +9,7 @@ use serenity::prelude::*;
 use songbird::SerenityInit;
 
 use rust::state::{BotData, LavaState, SharedState};
+use rust::health::Health;
 use rust::{commands, hooks, interactions};
 
 struct Handler;
@@ -108,6 +109,14 @@ async fn main() {
     // Separate handle so Lavalink hooks can edit the panel without a serenity Context.
     let http = Arc::new(Http::new(&token));
 
+    // PaaS web services sleep when nothing listens on the port, so always serve one.
+    let health = Health::new(Instant::now());
+    let port: u16 = env_or("PORT", "8080").parse().unwrap_or(8080);
+    {
+        let health = health.clone();
+        tokio::spawn(async move { rust::health::serve(health, port).await });
+    }
+
     let events = lavalink_rs::model::events::Events {
         ready: Some(hooks::ready_event),
         track_start: Some(hooks::track_start),
@@ -133,6 +142,7 @@ async fn main() {
         Arc::new(LavaState {
             shared: shared.clone(),
             http: http.clone(),
+            health: Some(health.clone()),
         }),
     )
     .await;
@@ -152,6 +162,7 @@ async fn main() {
         let mut data = client.data.write().await;
         data.insert::<BotData>(Arc::new(BotData {
             start_time: Instant::now(),
+            health: health.clone(),
             shard_manager: Mutex::new(None),
             lavalink,
             shared,

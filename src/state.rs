@@ -83,11 +83,13 @@ impl SharedState {
 pub struct LavaState {
     pub shared: Arc<Mutex<SharedState>>,
     pub http: Arc<serenity::http::Http>,
+    pub health: Option<crate::health::Health>,
 }
 
 /// Serenity TypeMap entry used by slash commands.
 pub struct BotData {
     pub start_time: Instant,
+    pub health: crate::health::Health,
     pub shard_manager: Mutex<Option<Arc<ShardManager>>>,
     pub lavalink: LavalinkClient,
     pub shared: Arc<Mutex<SharedState>>,
